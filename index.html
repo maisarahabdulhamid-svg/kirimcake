@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>kirimcake order form</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--teal:#2f8f8a;--mint:#cdeee3;--pink:#f6a5b8;--pink-d:#d9607f;--cream:#fff8ec;--ink:#24413f;--line:#e4dccb}
+*{box-sizing:border-box}
+body{margin:0;background:var(--cream);color:var(--ink);font:16px/1.5 Nunito,system-ui,sans-serif}
+.wrap{max-width:560px;margin:0 auto;padding:20px 16px 48px}
+header{text-align:center;padding:12px 0 8px}
+h1{font:600 34px Fredoka,sans-serif;color:var(--teal);margin:0}
+header p{margin:2px 0 0;color:var(--pink-d);font-weight:700}
+section{background:#fff;border:2px solid var(--mint);border-radius:20px;padding:16px;margin-top:16px}
+h2{font:500 20px Fredoka,sans-serif;margin:0 0 10px;color:var(--teal)}
+.item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px dashed var(--line)}
+.item:first-of-type{border-top:0}
+.item b{display:block}
+.tier{font-size:13px;color:#6b7f7d}
+.step{display:flex;align-items:center;gap:8px}
+.step button{width:34px;height:34px;border-radius:50%;border:0;background:var(--mint);color:var(--teal);font-size:20px;font-weight:700;cursor:pointer}
+.step button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,.go:focus-visible{outline:3px solid var(--pink);outline-offset:2px}
+.step output{min-width:22px;text-align:center;font-weight:700}
+.sub{min-width:74px;text-align:right;font-weight:700}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.opts label{border:2px solid var(--mint);border-radius:14px;padding:10px;text-align:center;cursor:pointer;font-weight:700}
+.opts input{position:absolute;opacity:0}
+.opts label:has(input:checked){background:var(--mint);border-color:var(--teal)}
+.opts label:has(input:focus-visible){outline:3px solid var(--pink)}
+.note{font-size:14px;background:#fff0f4;border-radius:12px;padding:10px;margin:10px 0 0;color:#8a3a52}
+label.f{display:block;font-weight:700;margin-top:12px}
+input[type=text],input[type=tel],select,textarea{width:100%;margin-top:4px;padding:11px;border:2px solid var(--line);border-radius:12px;font:inherit;background:#fff}
+.hide{display:none}
+.total{display:flex;justify-content:space-between;font:500 22px Fredoka,sans-serif}
+.total span:last-child{color:var(--pink-d)}
+.fee{font-size:14px;color:#6b7f7d;margin:4px 0 0}
+.go{width:100%;margin-top:14px;padding:14px;border:0;border-radius:999px;background:var(--teal);color:#fff;font:500 18px Fredoka,sans-serif;cursor:pointer}
+.go:disabled{opacity:.6}
+.err{color:#b3261e;font-weight:700;margin:10px 0 0;min-height:1.2em}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header><h1 id="brand"></h1><p>Soft cookies, mailed with love</p></header>
+
+<section><h2>Choose your cookies</h2><div id="items"></div></section>
+
+<section>
+<h2>Delivery or pickup</h2>
+<div class="opts">
+<label><input type="radio" name="method" value="Delivery" checked>Delivery</label>
+<label><input type="radio" name="method" value="Pickup">Pickup</label>
+</div>
+<div id="delBox">
+<label class="f">Delivery area<select id="delArea"></select></label>
+<p class="note">Delivery charge applies and depends on your location. We'll confirm the exact charge on WhatsApp.</p>
+</div>
+<div id="pickBox" class="hide">
+<label class="f">Pickup location<select id="pickArea"></select></label>
+</div>
+</section>
+
+<section>
+<h2>Your details</h2>
+<label class="f">Name<input type="text" id="name" autocomplete="name"></label>
+<label class="f">Phone number<input type="tel" id="phone" autocomplete="tel" placeholder="e.g. 0123456789"></label>
+<label class="f hide" id="addrBox">Delivery address<textarea id="addr" rows="3" autocomplete="street-address"></textarea></label>
+<label class="f">Notes (optional)<textarea id="notes" rows="2"></textarea></label>
+</section>
+
+<section>
+<div class="total"><span>Total</span><span id="total">RM 0.00</span></div>
+<p class="fee" id="feeNote">Excludes delivery charge.</p>
+<p class="err" id="err" role="alert"></p>
+<button class="go" id="go">Send order on WhatsApp</button>
+</section>
+</div>
+
+<script>
+/* ============ EDIT HERE ============ */
+const CONFIG = {
+  brand: "kirimcake",
+  whatsapp: "601143092143",          // your WhatsApp number, country code first, no + or spaces
+  sheetUrl: "https://docs.google.com/spreadsheets/d/1ZTeEelG4p51VkwksSTCHoOizGPzcbk3_tP6tQAnp2lk/edit?gid=0#gid=0",  // paste your Google Apps Script web app URL here
+  deliveryAreas: ["Semenyih", "Kajang", "Bangi", "Cybersouth"],
+  pickupAreas: ["Semenyih", "Cybersouth"],
+  /* Add products by copying one block. Prices are per piece and
+     change with quantity: from "min" pieces, the "price" applies. */
+  products: [
+    { name: "Choc Chip Soft Cookies", tiers: [{min:1, price:5}, {min:5, price:4}, {min:20, price:3}] },
+    { name: "Red Velvet Soft Cookies", tiers: [{min:1, price:8}, {min:5, price:7}, {min:20, price:6}] },
+    { name: "Smores Soft Cookies", tiers: [{min:1, price:6}, {min:5, price:5}, {min:20, price:4}] },
+    { name: "Combo (1 Choc Chip, 1 Red Velvet, 1 Smores", tiers: [{min:1, price:16}] }
+  ]
+};
+/* =================================== */
+
+const $ = id => document.getElementById(id);
+const rm = n => "RM " + n.toFixed(2);
+const qty = CONFIG.products.map(() => 0);
+document.title = CONFIG.brand + " order form";
+$("brand").textContent = CONFIG.brand;
+
+function unit(p, q){ let u = p.tiers[0].price; p.tiers.forEach(t => { if (q >= t.min) u = t.price; }); return u; }
+function tierText(p){ return p.tiers.map(t => t.min + "+ pcs: " + rm(t.price)).join(" · "); }
+
+CONFIG.products.forEach((p, i) => {
+  const d = document.createElement("div"); d.className = "item";
+  d.innerHTML = `<div><b>${p.name}</b><span class="tier">${tierText(p)}</span></div>
+  <div class="step"><button type="button" aria-label="Less ${p.name}" data-i="${i}" data-d="-1">−</button>
+  <output id="q${i}">0</output><button type="button" aria-label="More ${p.name}" data-i="${i}" data-d="1">+</button></div>
+  <div class="sub" id="s${i}"></div>`;
+  $("items").appendChild(d);
+});
+$("items").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  const i = +b.dataset.i; qty[i] = Math.max(0, qty[i] + +b.dataset.d); calc();
+});
+function fill(sel, arr){ $(sel).innerHTML = arr.map(a => `<option>${a}</option>`).join(""); }
+fill("delArea", CONFIG.deliveryAreas); fill("pickArea", CONFIG.pickupAreas);
+
+const method = () => document.querySelector('input[name=method]:checked').value;
+function calc(){
+  let total = 0;
+  CONFIG.products.forEach((p, i) => {
+    $("q" + i).textContent = qty[i];
+    const s = qty[i] ? unit(p, qty[i]) * qty[i] : 0; total += s;
+    $("s" + i).textContent = qty[i] ? rm(s) : "";
+  });
+  $("total").textContent = rm(total); return total;
+}
+document.querySelectorAll('input[name=method]').forEach(r => r.addEventListener("change", () => {
+  const del = method() === "Delivery";
+  $("delBox").classList.toggle("hide", !del); $("addrBox").classList.toggle("hide", !del);
+  $("pickBox").classList.toggle("hide", del);
+  $("feeNote").textContent = del ? "Excludes delivery charge." : "No delivery charge for pickup.";
+}));
+
+$("go").addEventListener("click", async () => {
+  const total = calc(), name = $("name").value.trim(), phone = $("phone").value.trim(), del = method() === "Delivery";
+  const lines = CONFIG.products.map((p, i) => qty[i] ? `${p.name} x${qty[i]} @ ${rm(unit(p, qty[i]))} = ${rm(unit(p, qty[i]) * qty[i])}` : null).filter(Boolean);
+  const fail = m => { $("err").textContent = m; };
+  if (!lines.length) return fail("Please choose at least one cookie.");
+  if (!name) return fail("Please enter your name.");
+  if (!/^[0-9+\-\s]{9,15}$/.test(phone)) return fail("Please enter a valid phone number.");
+  if (del && !$("addr").value.trim()) return fail("Please enter your delivery address.");
+  fail("");
+  const area = del ? $("delArea").value : $("pickArea").value;
+  const order = {
+    orderId: "KC" + Date.now().toString().slice(-8), name, phone, items: lines.join("; "), total: total.toFixed(2),
+    method: method(), area, address: del ? $("addr").value.trim() : "", notes: $("notes").value.trim()
+  };
+  $("go").disabled = true; $("go").textContent = "Sending...";
+  if (CONFIG.sheetUrl) {
+    try {
+      await Promise.race([
+        fetch(CONFIG.sheetUrl, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain" }, body: JSON.stringify(order) }),
+        new Promise(r => setTimeout(r, 3000))
+      ]);
+    } catch (e) {}
+  }
+  const msg = `Hi ${CONFIG.brand}! I'd like to order:\n\n` + lines.join("\n") +
+    `\n\nTotal: ${rm(total)} (${del ? "excl. delivery charge" : "pickup"})\n${order.method}: ${area}` +
+    (del ? `\nAddress: ${order.address}` : "") + `\n\nName: ${name}\nPhone: ${phone}` +
+    (order.notes ? `\nNotes: ${order.notes}` : "") + `\nOrder ID: ${order.orderId}`;
+  location.href = "https://wa.me/" + CONFIG.whatsapp + "?text=" + encodeURIComponent(msg);
+  setTimeout(() => { $("go").disabled = false; $("go").textContent = "Send order on WhatsApp"; }, 2000);
+});
+calc();
+</script>
+</body>
+</html>
